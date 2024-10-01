@@ -24,6 +24,8 @@ app.get('/scrape-product', async (req, res) => {
         const $ = cheerio.load(html);
         const productTitle = $('h1').text().trim();
         const productOverview = $('div#product-overview p').text().trim();
+        const productDescription =  $('div.col-sm-12.col-md-6 h5:nth-child(2)').text().trim();
+        const productPrice =  $('div.col-sm-12.col-md-6 h5:nth-child(3)').text().trim();
 
         let specs = [];
 
@@ -43,6 +45,8 @@ app.get('/scrape-product', async (req, res) => {
         res.json({
             title: productTitle,
             overview: productOverview,
+            description: productDescription,
+            price: productPrice,
             specs,
             firstValueAttribute: specs[0]?.values
         });
