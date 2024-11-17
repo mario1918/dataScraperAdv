@@ -80,6 +80,9 @@ app.post('/fetch-specs', async (req, res) => {
             }
         });
 
+        response["created-by"] = "Mario Ashraf (157011)";
+        response["supervision"] = "Eng. Alaa Ali";
+
         await browser.close();
         console.log('DONE!');
 
