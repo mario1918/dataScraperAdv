@@ -21,7 +21,7 @@ app.post('/fetch-specs', async (req, res) => {
         const browser = await chromium.launch();
         const page = await browser.newPage();
         console.log(`Browser opened. Navigatin to the page ...`);
-        await page.goto('https://www.caltestelectronics.com/product/CT2944-93');
+        //await page.goto('https://www.caltestelectronics.com/product/CT2944-93');
         await page.goto('https://www.belden.com/products/connectors/fiber-connectors/fusion-splice-on-connectors#sort=%40catalogitemwebdisplaypriority%20ascending&numberOfResults=25');
         page.setDefaultTimeout(300000);
         console.log(`Navigated to the page`);
