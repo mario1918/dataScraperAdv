@@ -2,6 +2,7 @@
 const express = require('express');
 const { chromium } = require('playwright');
 const cheerio = require('cheerio');
+const fs = require('fs');
 
 const app = express();
 const PORT = 4000;
@@ -9,10 +10,22 @@ const PORT = 4000;
 app.use(express.json());
 
 app.post('/fetch-specs', async (req, res) => {
-    const { specs } = req.body;
+    //const { specs } = req.body;
+    let config;
+    // Read from the configuration file
+    try {
+        const configFile = fs.readFileSync('config.json');
+        config = JSON.parse(configFile);
 
-    if (!specs || !Array.isArray(specs)) {
-        return res.status(400).send('Specifications must be provided as an array');
+    }catch (err) {
+        console.error('Error in reading config file', err);
+        return res.status(500).send('Failed to read the config file');
+    }
+
+    const {url, specs} = config;
+
+    if ( !url || !specs || !Array.isArray(specs)) {
+        return res.status(400).send('Invalid configuration: URL and specifications must be provided');
     }
 
     try {
@@ -24,18 +37,7 @@ app.post('/fetch-specs', async (req, res) => {
 
         try {
             console.log('Browser opened. Navigating to the page ...');
-            //await page.goto('https://www.alldatasheet.com/view.jsp?Searchword=ATMEGA128');
-            //await page.goto('https://www.caltestelectronics.com/product/CT2944-93');
-            //await page.goto('https://www.belden.com/products/connectors/fiber-connectors/fusion-splice-on-connectors#sort=%40catalogitemwebdisplaypriority%20ascending&numberOfResults=25');
-            //await page.goto('https://www.digikey.com/en/products/detail/w%C3%BCrth-elektronik/875105359001/5147580');
-            //await page.goto('https://eu.mouser.com/ProductDetail/ROHM-Semiconductor/RSX301L-30DDTE25?qs=sGAEpiMZZMtbRapU8LlZD%252B6h%2FWulpAkr%2FY1xa87RQph8xMmqFKqxyQ%3D%3D');
-            //await page.goto('https://www.avnet.com/shop/us/products/diodes-incorporated/tlv271cw5-7-3074457345624875681/');
-            //await page.goto('https://www.futureelectronics.com/p/semiconductors--microcontrollers--32-bit/mcxn947vdft-nxp-4182377');
-            //await page.goto('https://www.tti.com/content/ttiinc/en/apps/part-detail.html?partsNumber=B151-7184-L&mfgShortname=COT&productId=1230302271');
-            //await page.goto('https://export.farnell.com/roxburgh/xe12001/cap-rc-network-0-01uf-120r-250vac/dp/2336098');
-            await page.goto('https://www.newark.com/hirose-hrs/bm28b0-6-50dp-2-0-35v-53/conn-stacking-header-50s-2p-2row/dp/92AH8029');
-
-
+            await page.goto(url);
             console.log('Navigated to the page');
             //await page.waitForSelector('h1');
             //console.log('Waited for h1 to be visible');
