@@ -33,20 +33,19 @@ app.post('/fetch-specs', async (req, res) => {
         const page = await browser.newPage();
         page.setDefaultTimeout(300000);
 
-        //page.on('console', (msg) => console.log('PAGE LOG:', msg.text()));
 
         try {
-            console.log('Browser opened. Navigating to the page ...');
             await page.goto(url);
             console.log('Navigated to the page');
-            //await page.waitForSelector('h1');
-            //console.log('Waited for h1 to be visible');
+        
         } catch (err) {
             console.error('Error during navigation:', err);
             res.status(500).send('Failed to navigate to the page');
             await browser.close();
             return;
         }
+
+        //await page.waitForSelector('h2');
 
         const content = await page.content();
         const $ = cheerio.load(content);
@@ -55,19 +54,26 @@ app.post('/fetch-specs', async (req, res) => {
 
         const findSpecificationValues = (spec) => {
             const specLower = spec.toLowerCase();
+            console.log(`specLower: ${specLower}`);
             let foundValues = null;
-
-            const specElement = $(`body *:contains(${spec})`).filter(function () {
+            console.log(`..Before..`);
+            const specElement = $(`body *:contains("${spec}")`).filter(function () {
                 return $(this).text().trim().toLowerCase() === specLower;
             });
 
+
+            console.log(`Found specification elements: ${specElement}`);
+
             if (specElement.length > 0) {
                 const parent = specElement.parent();
+                console.log(`The parent: ${parent}`);
 
                 foundValues = parent.contents().not(specElement)
                     .map((i, sibling) => $(sibling).text().trim())
                     .get()
                     .filter(text => text && !text.includes(spec));
+                    
+                    console.log(`the foundValues: ${foundValues}`);
 
                 if (foundValues.length === 0) {
                     foundValues = specElement.nextAll()
@@ -75,6 +81,8 @@ app.post('/fetch-specs', async (req, res) => {
                         .get()
                         .filter(text => text && !text.includes(spec));
                 }
+            }else {
+                console.error('((No specification elements found))');
             }
 
             return foundValues;
@@ -88,6 +96,8 @@ app.post('/fetch-specs', async (req, res) => {
                 response[spec] = 'Specification not found';
             }
         });
+
+        console.log(`END`);
 
         await browser.close();
 
