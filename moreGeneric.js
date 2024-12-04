@@ -10,21 +10,21 @@ const PORT = 4000;
 app.use(express.json());
 
 app.post('/fetch-specs', async (req, res) => {
-    //const { specs } = req.body;
     let config;
+
     // Read from the configuration file
+
     try {
         const configFile = fs.readFileSync('config.json');
         config = JSON.parse(configFile);
-
-    }catch (err) {
-        console.error('Error in reading config file', err);
+    } catch (err) {
+        console.error('Error in reading config file:', err);
         return res.status(500).send('Failed to read the config file');
     }
 
-    const {url, specs} = config;
+    const { url, specs } = config;
 
-    if ( !url || !specs || !Array.isArray(specs)) {
+    if (!url || !specs || !Array.isArray(specs)) {
         return res.status(400).send('Invalid configuration: URL and specifications must be provided');
     }
 
@@ -33,11 +33,9 @@ app.post('/fetch-specs', async (req, res) => {
         const page = await browser.newPage();
         page.setDefaultTimeout(300000);
 
-
         try {
-            await page.goto(url);
+            await page.goto(url, { waitUntil: 'networkidle' });
             console.log('Navigated to the page');
-        
         } catch (err) {
             console.error('Error during navigation:', err);
             res.status(500).send('Failed to navigate to the page');
@@ -45,9 +43,22 @@ app.post('/fetch-specs', async (req, res) => {
             return;
         }
 
-        //await page.waitForSelector('h2');
+        // Wait for a key element that confirms the page and dynamic content are loaded
+
+        await page.waitForSelector('#pes-section-with-header > div:nth-of-type(1) > div > pes-specifications-table:nth-of-type(1) table > tbody > tr:nth-of-type(1) > th', { timeout: 60000 });
 
         const content = await page.content();
+
+        // Logging the content retured by Playwright
+        fs.writeFile('pageContent.html', content, (err) => {
+            if(err) {
+                console.error(`Failed to write a file`, err)
+            }
+            else{
+                console.log(`Page content saved successfully!`);
+            }
+        })
+
         const $ = cheerio.load(content);
 
         let response = {};
@@ -57,23 +68,23 @@ app.post('/fetch-specs', async (req, res) => {
             console.log(`specLower: ${specLower}`);
             let foundValues = null;
             console.log(`..Before..`);
-            const specElement = $(`body *:contains("${spec}")`).filter(function () {
+            const specElement = $(`body *:contains("${spec}")`)
+            .filter(function () {
                 return $(this).text().trim().toLowerCase() === specLower;
             });
-
 
             console.log(`Found specification elements: ${specElement}`);
 
             if (specElement.length > 0) {
                 const parent = specElement.parent();
-                console.log(`The parent: ${parent}`);
+                console.log(`The parent: ${parent.html()}`);
 
                 foundValues = parent.contents().not(specElement)
                     .map((i, sibling) => $(sibling).text().trim())
                     .get()
                     .filter(text => text && !text.includes(spec));
-                    
-                    console.log(`the foundValues: ${foundValues}`);
+
+                console.log(`the foundValues: ${foundValues}`);
 
                 if (foundValues.length === 0) {
                     foundValues = specElement.nextAll()
@@ -81,7 +92,7 @@ app.post('/fetch-specs', async (req, res) => {
                         .get()
                         .filter(text => text && !text.includes(spec));
                 }
-            }else {
+            } else {
                 console.error('((No specification elements found))');
             }
 
@@ -97,7 +108,7 @@ app.post('/fetch-specs', async (req, res) => {
             }
         });
 
-        console.log(`END`);
+        console.log('END');
 
         await browser.close();
 
